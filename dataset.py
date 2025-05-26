@@ -8,7 +8,7 @@ from scipy.interpolate import interp1d
 from utils import get_labels_start_end_time
 from scipy.ndimage import gaussian_filter1d
 
-def get_data_dict(feature_dir, label_dir, video_list, event_list, sample_rate=4, temporal_aug=True, boundary_smooth=None):
+def get_data_dict(feature_dir, label_dir, video_list, event_list, sample_rate=4, temporal_aug=True, boundary_smooth=None): # 비디오 별 feature 및 label,boundary 정보를 불러와 torch.tensor 형태로 저장
     
     assert(sample_rate > 0)
         
@@ -83,7 +83,7 @@ def get_data_dict(feature_dir, label_dir, video_list, event_list, sample_rate=4,
         
     return data_dict
 
-def get_boundary_seq(event_seq, boundary_smooth=None):
+def get_boundary_seq(event_seq, boundary_smooth=None): # 이벤트 시퀀스에서 boundary를 추출하여 smoothing 처리
 
     boundary_seq = np.zeros_like(event_seq)
 
@@ -107,7 +107,7 @@ def get_boundary_seq(event_seq, boundary_smooth=None):
     return boundary_seq
 
 
-def restore_full_sequence(x, full_len, left_offset, right_offset, sample_rate):
+def restore_full_sequence(x, full_len, left_offset, right_offset, sample_rate): # 다운샘플링된 시퀀스를 원래 시퀀스 길이로 interpolation 하여 복원
         
     frame_ticks = np.arange(left_offset, full_len-right_offset, sample_rate)
     full_ticks = np.arange(frame_ticks[0], frame_ticks[-1]+1, 1)
@@ -126,7 +126,7 @@ def restore_full_sequence(x, full_len, left_offset, right_offset, sample_rate):
 
 
 
-class VideoFeatureDataset(Dataset):
+class VideoFeatureDataset(Dataset): # 학습/테스트 데이터를 위한 pytorch용 데이터셋 클래스
     def __init__(self, data_dict, class_num, mode):
         super(VideoFeatureDataset, self).__init__()
         
