@@ -105,18 +105,16 @@ class Trainer:
                 feature, label, boundary = feature.to(device), label.to(device), boundary.to(device)
 
                 loss_dict = self.model.get_training_loss(feature,
-                                                         event_gt=F.one_hot(label.long(),
-                                                                            num_classes=self.num_classes).permute(0, 2,
-                                                                                                                  1),
-                                                         boundary_gt=boundary,
-                                                         encoder_ce_criterion=ce_criterion,
-                                                         encoder_mse_criterion=mse_criterion,
-                                                         encoder_boundary_criterion=bce_criterion,
-                                                         decoder_ce_criterion=ce_criterion,
-                                                         decoder_mse_criterion=mse_criterion,
-                                                         decoder_boundary_criterion=bce_criterion,
-                                                         soft_label=soft_label
-                                                         )
+                    event_gt=F.one_hot(label.long(), num_classes=self.num_classes).permute(0, 2, 1),
+                    boundary_gt=boundary,
+                    encoder_ce_criterion=ce_criterion,
+                    encoder_mse_criterion=mse_criterion,
+                    encoder_boundary_criterion=bce_criterion,
+                    decoder_ce_criterion=ce_criterion,
+                    decoder_mse_criterion=mse_criterion,
+                    decoder_boundary_criterion=bce_criterion,
+                    soft_label=soft_label
+                )
 
                 total_loss = 0
 
