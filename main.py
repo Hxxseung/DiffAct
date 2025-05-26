@@ -1,5 +1,5 @@
 import os
-import csv  # Added for CSV file operations
+import csv
 import copy
 import torch
 import argparse
@@ -20,8 +20,7 @@ from utils import mode_filter
 
 class Trainer:
     def __init__(self, encoder_params, decoder_params, diffusion_params,
-                 event_list, sample_rate, temporal_aug, set_sampling_seed, postprocess, device,
-                 all_params):  # all_params 인자 추가
+                 event_list, sample_rate, temporal_aug, set_sampling_seed, postprocess, device, all_params):
 
         self.device = device
         self.num_classes = len(event_list)
@@ -32,7 +31,7 @@ class Trainer:
         self.temporal_aug = temporal_aug
         self.set_sampling_seed = set_sampling_seed
         self.postprocess = postprocess
-        self.params = all_params  # all_params를 self.params에 저장
+        self.params = all_params
 
         self.model = ASDiffusionModel(encoder_params, decoder_params, diffusion_params, self.num_classes, self.device)
         print('Model Size: ', sum(p.numel() for p in self.model.parameters()))
@@ -40,7 +39,8 @@ class Trainer:
     def train(self, train_train_dataset, train_test_dataset, test_test_dataset, loss_weights, class_weighting,
               soft_label,
               num_epochs, batch_size, learning_rate, weight_decay, label_dir, result_dir, log_freq,
-              log_train_results=True):
+              log_train_results=True,
+              early_stopping_patience=None, early_stopping_min_delta=0.001):  # Early Stopping 파라미터 추가
 
         device = self.device
         self.model.to(device)
@@ -86,6 +86,12 @@ class Trainer:
             with open(csv_file_path, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(['Epoch', 'Dataset', 'Acc', 'Edit', 'F1@10', 'F1@25', 'F1@50'])
+
+        # --- Early Stopping 변수 초기화 ---
+        best_score = float('-inf')  # F1 스코어는 높을수록 좋으므로 -inf로 초기화
+        patience_counter = 0
+        best_model_state = None
+        # ------------------------------------
 
         for epoch in range(restore_epoch + 1, num_epochs):
 
@@ -158,8 +164,6 @@ class Trainer:
                         test_test_dataset, mode, device, label_dir,
                         result_dir=result_dir, model_path=None)
 
-                    # result_dir 경로에 prediction 폴더를 생성하고 .txt 파일로 저장하는 부분은 이미 test 함수 내부에 있음.
-
                     # TensorBoard 로깅 (기존 코드)
                     if result_dir:
                         for k, v in test_result_dict.items():
@@ -172,11 +176,11 @@ class Trainer:
                         print(f'Epoch {epoch} - {mode}-Test-{k} {v}')
 
                     # --- CSV 파일로 결과 저장 로직 추가 (test_test_dataset 결과) ---
-                    with open(csv_file_path, 'a', newline='') as f:  # 'a'는 append 모드
+                    with open(csv_file_path, 'a', newline='') as f:
                         writer = csv.writer(f)
                         writer.writerow([
                             epoch + 1,
-                            f'{mode}-Test',  # 데이터셋 구분
+                            f'{mode}-Test',
                             test_result_dict['Acc'],
                             test_result_dict['Edit'],
                             test_result_dict['F1@10'],
@@ -184,6 +188,30 @@ class Trainer:
                             test_result_dict['F1@50']
                         ])
                     # ---------------------------------------------------
+
+                    # --- Early Stopping 로직 적용 ---
+                    current_score = test_result_dict['F1@25']  # F1@25를 모니터링 지표로 사용
+
+                    if current_score > best_score + early_stopping_min_delta:
+                        best_score = current_score
+                        patience_counter = 0
+                        best_model_state = copy.deepcopy(self.model.state_dict())  # 최적 모델 상태 저장
+                        print(f"Epoch {epoch + 1}: Validation F1@25 improved to {best_score:.4f}. Saving best model.")
+                    else:
+                        patience_counter += 1
+                        print(
+                            f"Epoch {epoch + 1}: Validation F1@25 did not improve. Patience: {patience_counter}/{early_stopping_patience}")
+
+                    if early_stopping_patience is not None and patience_counter >= early_stopping_patience:
+                        print(
+                            f"Early stopping triggered at epoch {epoch + 1}. No improvement for {early_stopping_patience} epochs.")
+                        if best_model_state is not None:
+                            # 최적 모델 로드 및 저장 (선택 사항: 나중에 사용하기 위해)
+                            self.model.load_state_dict(best_model_state)
+                            torch.save(self.model.state_dict(), f'{result_dir}/best_early_stop_model.model')
+                            print(f"Best model saved to {result_dir}/best_early_stop_model.model")
+                        break  # 학습 루프 종료
+                    # ------------------------------------
 
                     if log_train_results:
 
@@ -202,11 +230,11 @@ class Trainer:
                             print(f'Epoch {epoch} - {mode}-Train-{k} {v}')
 
                         # --- CSV 파일로 결과 저장 로직 추가 (train_test_dataset 결과) ---
-                        with open(csv_file_path, 'a', newline='') as f:  # 'a'는 append 모드
+                        with open(csv_file_path, 'a', newline='') as f:
                             writer = csv.writer(f)
                             writer.writerow([
                                 epoch + 1,
-                                f'{mode}-Train',  # 데이터셋 구분
+                                f'{mode}-Train',
                                 train_result_dict['Acc'],
                                 train_result_dict['Edit'],
                                 train_result_dict['F1@10'],
@@ -214,6 +242,9 @@ class Trainer:
                                 train_result_dict['F1@50']
                             ])
                         # ---------------------------------------------------
+            # Early stopping이 트리거되면 바깥 for 루프도 종료되어야 함
+            if early_stopping_patience is not None and patience_counter >= early_stopping_patience:
+                break
 
         if result_dir:
             logger.close()
@@ -362,6 +393,12 @@ if __name__ == '__main__':
 
     parser.add_argument('--config', type=str)
     parser.add_argument('--device', type=int)
+    # Early Stopping 파라미터 추가
+    parser.add_argument('--early_stopping_patience', type=int, default=None,
+                        help='Number of epochs to wait for improvement before stopping. Set to None to disable.')
+    parser.add_argument('--early_stopping_min_delta', type=float, default=0.001,
+                        help='Minimum change to qualify as an improvement for early stopping.')
+
     args = parser.parse_args()
 
     all_params = load_config_file(args.config)
@@ -427,11 +464,12 @@ if __name__ == '__main__':
                       all_params=all_params  # all_params 인자 전달
                       )
 
-    # 기존 result_dir 변수는 Trainer 내부로 전달되는 값이 됨 (naming과 합쳐져서 사용)
-    # Trainer의 train 메서드에 custom_result_dir 전달
+    # Trainer의 train 메서드에 custom_result_dir 및 early stopping 파라미터 전달
     trainer.train(train_train_dataset, train_test_dataset, test_test_dataset,
                   loss_weights, class_weighting, soft_label,
                   num_epochs, batch_size, learning_rate, weight_decay,
-                  label_dir=label_dir, result_dir=os.path.join(custom_result_dir, naming),  # custom_result_dir 전달
-                  log_freq=log_freq, log_train_results=log_train_results
+                  label_dir=label_dir, result_dir=os.path.join(custom_result_dir, naming),
+                  log_freq=log_freq, log_train_results=log_train_results,
+                  early_stopping_patience=args.early_stopping_patience,  # arg로 받은 값 전달
+                  early_stopping_min_delta=args.early_stopping_min_delta  # arg로 받은 값 전달
                   )
