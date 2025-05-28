@@ -125,7 +125,7 @@ params_50salads = {
    "soft_label": None,
    "log_train_results":False,
    "postprocess":{
-      "type":"gaussian", # W , 예측 후 결과 다듬는 단계 => value 값 조절을 통해 최적 값 찾는 것도 방법
+      "type":"median", # W , 예측 후 결과 다듬는 단계 => value 값 조절을 통해 최적 값 찾는 것도 방법
       "value":50 # W
    },
 }
