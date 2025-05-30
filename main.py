@@ -55,7 +55,7 @@ class Trainer:
             if 'latest.pt' in os.listdir(result_dir):
                 if os.path.getsize(os.path.join(result_dir, 'latest.pt')) > 0:
                     saved_state = torch.load(os.path.join(result_dir, 'latest.pt'))
-                    self.model.load_state_dict(saved_state['model'], strict=False)
+                    self.model.load_state_dict(saved_state['model'])
                     optimizer.load_state_dict(saved_state['optimizer'])
                     restore_epoch = saved_state['epoch']
                     step = saved_state['step']
