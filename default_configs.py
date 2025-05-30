@@ -114,19 +114,19 @@ params_50salads = {
       "decoder_mse_loss":0.1,
       "decoder_boundary_loss":0.1
    },
-   "batch_size":4,
-   "learning_rate":0.0005,
+   "batch_size":16,
+   "learning_rate":0.0003,
    "weight_decay":0,
    "num_epochs":5001,
    "log_freq":100,
    "class_weighting":True,
    "set_sampling_seed":True,
-   "boundary_smooth":20,
+   "boundary_smooth":30,
    "soft_label": None,
    "log_train_results":False,
    "postprocess":{
       "type":"median", # W
-      "value":30 # W
+      "value":50 # W
    },
 }
 
