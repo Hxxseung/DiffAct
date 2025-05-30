@@ -55,7 +55,7 @@ class Trainer:
             if 'latest.pt' in os.listdir(result_dir):
                 if os.path.getsize(os.path.join(result_dir, 'latest.pt')) > 0:
                     saved_state = torch.load(os.path.join(result_dir, 'latest.pt'))
-                    self.model.load_state_dict(saved_state['model'])
+                    self.model.load_state_dict(saved_state['model'], strict=False)
                     optimizer.load_state_dict(saved_state['optimizer'])
                     restore_epoch = saved_state['epoch']
                     step = saved_state['step']
@@ -79,7 +79,7 @@ class Trainer:
             logger = SummaryWriter(result_dir)
 
         # CSV 파일 경로 설정
-        csv_file_path = os.path.join(result_dir, f"{self.params['naming']}_results.csv")
+        csv_file_path = os.path.join(result_dir, f"{self.params['naming']}_results_change.csv")
 
         # CSV 헤더 작성 (파일이 존재하지 않을 경우)
         if not os.path.exists(csv_file_path):
@@ -449,7 +449,7 @@ if __name__ == '__main__':
     test_test_dataset = VideoFeatureDataset(test_data_dict, num_classes, mode='test')
 
     # 결과 저장 경로를 /home/user/Downloads/result로 설정
-    custom_result_dir = "/home/user/Downloads/result"
+    custom_result_dir = "/home/user/Downloads/result_origin"
 
     # 결과 디렉토리가 없으면 생성
     if not os.path.exists(custom_result_dir):
