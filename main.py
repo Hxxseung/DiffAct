@@ -79,7 +79,7 @@ class Trainer:
             logger = SummaryWriter(result_dir)
 
         # CSV 파일 경로 설정
-        csv_file_path = os.path.join(result_dir, f"{self.params['naming']}_results_origin.csv")
+        csv_file_path = os.path.join(result_dir, f"{self.params['naming']}_results_change.csv")
 
         # CSV 헤더 작성 (파일이 존재하지 않을 경우)
         if not os.path.exists(csv_file_path):
@@ -251,7 +251,7 @@ class Trainer:
 
         assert (test_dataset.mode == 'test')
         assert (mode in ['encoder', 'decoder-noagg', 'decoder-agg'])
-        assert (self.postprocess['type'] in ['median', 'mode', 'purge'])
+        assert (self.postprocess['type'] in ['median', 'mode', 'purge', None])
 
         self.model.eval()
         self.model.to(device)
