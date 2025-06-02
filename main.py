@@ -178,7 +178,7 @@ class Trainer:
                         writer = csv.writer(f)
                         writer.writerow([
                             epoch + 1,
-                            f'{mode}-Test',
+                            f'{mode}',
                             test_result_dict['Acc'],
                             test_result_dict['Edit'],
                             test_result_dict['F1@10'],
@@ -232,7 +232,7 @@ class Trainer:
                             writer = csv.writer(f)
                             writer.writerow([
                                 epoch + 1,
-                                f'{mode}-Train',
+                                f'{mode}',
                                 train_result_dict['Acc'],
                                 train_result_dict['Edit'],
                                 train_result_dict['F1@10'],
